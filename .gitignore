@@ -1,0 +1,45 @@
+# Build directories
+bin/
+obj/
+*.o
+*.exe
+
+# Profiling output
+gmon.out
+perf.data
+perf.data.old
+*.prof
+
+# Results
+results/*.png
+results/*.jpg
+results/*.txt
+results/*.csv
+results/perf_data/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Compiled binaries
+convolution
+convolution.exe
+convolution_debug
+convolution_prof
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
