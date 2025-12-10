@@ -26,7 +26,7 @@ echo ""
 ################################################################################
 # Step 1: Check Dependencies
 ################################################################################
-echo -e "${YELLOW}[1/9] بررسی ابزارهای لازم...${NC}"
+echo -e "${YELLOW}[1/9] Checking required tools...${NC}"
 
 MISSING_TOOLS=()
 
@@ -50,25 +50,31 @@ if ! command -v bc &> /dev/null; then
     MISSING_TOOLS+=("bc")
 fi
 
+# Check Python packages
+if ! python3 -c "import numpy" &> /dev/null; then
+    echo -e "${YELLOW}⚠ numpy not installed, installing...${NC}"
+    sudo apt-get install -y python3-numpy python3-pil > /dev/null 2>&1
+fi
+
 if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
-    echo -e "${RED}✗ ابزارهای زیر نصب نیستند:${NC}"
+    echo -e "${RED}✗ The following tools are not installed:${NC}"
     for tool in "${MISSING_TOOLS[@]}"; do
         echo "  - $tool"
     done
     echo ""
-    echo "برای نصب:"
+    echo "To install:"
     echo "  sudo apt-get update"
     echo "  sudo apt-get install -y gcc make python3 wget bc linux-tools-common"
     exit 1
 fi
 
-echo -e "${GREEN}✓ تمام ابزارها نصب شده‌اند${NC}"
+echo -e "${GREEN}✓ All tools are installed${NC}"
 echo ""
 
 ################################################################################
 # Step 2: Download Real STB Libraries
 ################################################################################
-echo -e "${YELLOW}[2/9] دانلود کتابخانه‌های واقعی STB...${NC}"
+echo -e "${YELLOW}[2/9] Downloading real STB libraries...${NC}"
 
 STB_IMAGE_URL="https://raw.githubusercontent.com/nothings/stb/master/stb_image.h"
 STB_IMAGE_WRITE_URL="https://raw.githubusercontent.com/nothings/stb/master/stb_image_write.h"
@@ -83,19 +89,19 @@ if [ -f "include/stb_image_write.h" ]; then
 fi
 
 # Download
-echo "  دانلود stb_image.h..."
+echo "  Downloading stb_image.h..."
 if wget -q "$STB_IMAGE_URL" -O include/stb_image.h; then
-    echo -e "${GREEN}  ✓ stb_image.h دانلود شد${NC}"
+    echo -e "${GREEN}  ✓ stb_image.h downloaded${NC}"
 else
-    echo -e "${RED}  ✗ خطا در دانلود stb_image.h${NC}"
+    echo -e "${RED}  ✗ Error downloading stb_image.h${NC}"
     exit 1
 fi
 
-echo "  دانلود stb_image_write.h..."
+echo "  Downloading stb_image_write.h..."
 if wget -q "$STB_IMAGE_WRITE_URL" -O include/stb_image_write.h; then
-    echo -e "${GREEN}  ✓ stb_image_write.h دانلود شد${NC}"
+    echo -e "${GREEN}  ✓ stb_image_write.h downloaded${NC}"
 else
-    echo -e "${RED}  ✗ خطا در دانلود stb_image_write.h${NC}"
+    echo -e "${RED}  ✗ Error downloading stb_image_write.h${NC}"
     exit 1
 fi
 
@@ -104,17 +110,23 @@ STB_IMAGE_SIZE=$(stat -f%z "include/stb_image.h" 2>/dev/null || stat -c%s "inclu
 STB_IMAGE_WRITE_SIZE=$(stat -f%z "include/stb_image_write.h" 2>/dev/null || stat -c%s "include/stb_image_write.h" 2>/dev/null || echo 0)
 
 if [ "$STB_IMAGE_SIZE" -lt 5000 ] || [ "$STB_IMAGE_WRITE_SIZE" -lt 5000 ]; then
-    echo -e "${RED}✗ فایل‌های دانلود شده خیلی کوچک هستند (احتمالاً stub)${NC}"
+    echo -e "${RED}✗ Downloaded files are too small (probably stub)${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✓ کتابخانه‌های STB دانلود شدند (${STB_IMAGE_SIZE} bytes + ${STB_IMAGE_WRITE_SIZE} bytes)${NC}"
+echo -e "${GREEN}✓ STB libraries downloaded (${STB_IMAGE_SIZE} bytes + ${STB_IMAGE_WRITE_SIZE} bytes)${NC}"
 echo ""
 
 ################################################################################
 # Step 3: Create Directories
 ################################################################################
-echo -e "${YELLOW}[3/9] ساخت پوشه‌ها...${NC}"
+echo -e "${YELLOW}[3/9] Creating directories...${NC}"
+
+# Clean old results
+if [ -d "results" ]; then
+    echo "  Cleaning previous results..."
+    rm -rf results/data/*.csv results/images/*.png results/*.png 2>/dev/null || true
+fi
 
 mkdir -p images
 mkdir -p results
@@ -122,54 +134,54 @@ mkdir -p results/data
 mkdir -p results/images
 mkdir -p bin
 
-echo -e "${GREEN}✓ پوشه‌ها آماده شدند${NC}"
+echo -e "${GREEN}✓ Directories ready${NC}"
 echo ""
 
 ################################################################################
 # Step 4: Generate Test Images
 ################################################################################
-echo -e "${YELLOW}[4/9] ساخت تصاویر تست...${NC}"
+echo -e "${YELLOW}[4/9] Generating test images...${NC}"
 
 if [ ! -f "scripts/generate_test_images.py" ]; then
-    echo -e "${RED}✗ فایل generate_test_images.py وجود ندارد${NC}"
+    echo -e "${RED}✗ File generate_test_images.py not found${NC}"
     exit 1
 fi
 
 python3 scripts/generate_test_images.py
 
 if [ ! -f "images/input.png" ]; then
-    echo -e "${RED}✗ تصویر input.png ساخته نشد${NC}"
+    echo -e "${RED}✗ Image input.png was not created${NC}"
     exit 1
 fi
 
 IMAGE_SIZE=$(stat -f%z "images/input.png" 2>/dev/null || stat -c%s "images/input.png" 2>/dev/null || echo 0)
-echo -e "${GREEN}✓ تصاویر تست ساخته شدند (input.png: ${IMAGE_SIZE} bytes)${NC}"
+echo -e "${GREEN}✓ Test images generated (input.png: ${IMAGE_SIZE} bytes)${NC}"
 echo ""
 
 ################################################################################
 # Step 5: Clean Previous Build
 ################################################################################
-echo -e "${YELLOW}[5/9] پاکسازی build قبلی...${NC}"
+echo -e "${YELLOW}[5/9] Cleaning previous build...${NC}"
 
 make clean > /dev/null 2>&1
 
-echo -e "${GREEN}✓ پاکسازی انجام شد${NC}"
+echo -e "${GREEN}✓ Clean completed${NC}"
 echo ""
 
 ################################################################################
 # Step 6: Compile Project
 ################################################################################
-echo -e "${YELLOW}[6/9] کامپایل پروژه...${NC}"
+echo -e "${YELLOW}[6/9] Compiling project...${NC}"
 
 if make; then
-    echo -e "${GREEN}✓ کامپایل موفق${NC}"
+    echo -e "${GREEN}✓ Compilation successful${NC}"
 else
-    echo -e "${RED}✗ خطا در کامپایل${NC}"
+    echo -e "${RED}✗ Compilation error${NC}"
     exit 1
 fi
 
 if [ ! -f "bin/convolution" ]; then
-    echo -e "${RED}✗ فایل اجرایی ساخته نشد${NC}"
+    echo -e "${RED}✗ Executable was not created${NC}"
     exit 1
 fi
 
@@ -178,37 +190,35 @@ echo ""
 ################################################################################
 # Step 7: Quick Validation Test
 ################################################################################
-echo -e "${YELLOW}[7/9] تست سریع اعتبارسنجی...${NC}"
+echo -e "${YELLOW}[7/9] Quick validation test...${NC}"
 
-TEST_START=$(date +%s)
 if ./bin/convolution -i images/input.png -o results/test_quick.png -k 3 -t 4; then
-    TEST_END=$(date +%s)
-    TEST_DURATION=$((TEST_END - TEST_START))
-    
-    if [ "$TEST_DURATION" -lt 3 ]; then
-        echo -e "${RED}✗ تست خیلی سریع اجرا شد ($TEST_DURATION ثانیه) - احتمالاً مشکل دارد!${NC}"
-        echo "  فایل‌های STB ممکن است هنوز stub باشند"
-        exit 1
-    fi
-    
-    echo -e "${GREEN}✓ تست سریع موفق ($TEST_DURATION ثانیه)${NC}"
+    echo -e "${GREEN}✓ Quick test successful${NC}"
 else
-    echo -e "${RED}✗ تست سریع ناموفق${NC}"
+    echo -e "${RED}✗ Quick test failed${NC}"
     exit 1
 fi
 
 if [ ! -f "results/test_quick.png" ]; then
-    echo -e "${RED}✗ تصویر خروجی ساخته نشد${NC}"
+    echo -e "${RED}✗ Output image was not created${NC}"
     exit 1
 fi
 
+# Verify output image is not empty
+TEST_SIZE=$(stat -c%s "results/test_quick.png" 2>/dev/null || echo 0)
+if [ "$TEST_SIZE" -lt 1000 ]; then
+    echo -e "${RED}✗ Output image is too small (probably empty)${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Output image is valid (${TEST_SIZE} bytes)${NC}"
 echo ""
 
 ################################################################################
 # Step 8: Full Benchmark Suite
 ################################################################################
-echo -e "${YELLOW}[8/9] اجرای تست‌های کامل benchmark...${NC}"
-echo -e "${BLUE}⏳ این مرحله 20-40 دقیقه طول می‌کشد${NC}"
+echo -e "${YELLOW}[8/9] Running full benchmark suite...${NC}"
+echo -e "${BLUE}⏳ This step takes 20-40 minutes${NC}"
 echo ""
 
 BENCH_START=$(date +%s)
@@ -222,13 +232,13 @@ if [ -f "scripts/run_complete_tests.sh" ]; then
         BENCH_SECONDS=$((BENCH_DURATION % 60))
         
         echo ""
-        echo -e "${GREEN}✓ تست‌های benchmark تمام شدند (${BENCH_MINUTES}m ${BENCH_SECONDS}s)${NC}"
+        echo -e "${GREEN}✓ Benchmark tests completed (${BENCH_MINUTES}m ${BENCH_SECONDS}s)${NC}"
     else
-        echo -e "${RED}✗ خطا در اجرای benchmark${NC}"
+        echo -e "${RED}✗ Benchmark execution error${NC}"
         exit 1
     fi
 else
-    echo -e "${RED}✗ فایل run_complete_tests.sh وجود ندارد${NC}"
+    echo -e "${RED}✗ File run_complete_tests.sh not found${NC}"
     exit 1
 fi
 
@@ -237,7 +247,7 @@ echo ""
 ################################################################################
 # Step 9: Generate Summary Report
 ################################################################################
-echo -e "${YELLOW}[9/9] ساخت گزارش نهایی...${NC}"
+echo -e "${YELLOW}[9/9] Generating final report...${NC}"
 
 REPORT_FILE="results/FULL_TEST_REPORT.txt"
 
@@ -333,24 +343,24 @@ cat >> "$REPORT_FILE" << EOF
 
 EOF
 
-echo -e "${GREEN}✓ گزارش نهایی ساخته شد: $REPORT_FILE${NC}"
+echo -e "${GREEN}✓ Final report created: $REPORT_FILE${NC}"
 echo ""
 
 ################################################################################
 # Final Summary
 ################################################################################
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║                    ✅ تمام شد!                            ║${NC}"
+echo -e "${BLUE}║                    ✅ DONE!                               ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${GREEN}✓ تمام مراحل با موفقیت انجام شدند${NC}"
+echo -e "${GREEN}✓ All steps completed successfully${NC}"
 echo ""
-echo "📁 فایل‌های مهم:"
-echo "  • گزارش کامل: results/FULL_TEST_REPORT.txt"
-echo "  • داده‌های benchmark: results/data/*.csv"
-echo "  • تصاویر خروجی: results/images/*.png"
+echo "📁 Important files:"
+echo "  • Full report: results/FULL_TEST_REPORT.txt"
+echo "  • Benchmark data: results/data/*.csv"
+echo "  • Output images: results/images/*.png"
 echo ""
-echo "برای مشاهده گزارش:"
+echo "To view report:"
 echo "  cat results/FULL_TEST_REPORT.txt"
 echo ""
 
