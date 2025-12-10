@@ -102,41 +102,6 @@ echo -e "${GREEN}✓ Kernel size comparison completed${NC}"
 echo ""
 
 ################################################################################
-# Test 5: Performance Profiling with perf
-################################################################################
-echo -e "${YELLOW}[5/6] Performance Profiling (perf)...${NC}"
-mkdir -p results/perf_data
-
-if command -v perf &> /dev/null; then
-    echo "  Running perf stat for 4 threads..."
-    perf stat -e cycles,instructions,cache-misses,cache-references -o results/perf_data/perf_4threads.txt ./bin/convolution -i images/input.png -o results/images/perf_test.png -k 3 -t 4 > /dev/null 2>&1 || echo "  ⚠ perf requires sudo or relaxed permissions"
-    
-    echo "  Running perf stat for different thread counts..."
-    for t in 1 2 4 8; do
-        perf stat -e cycles,instructions -o results/perf_data/perf_${t}threads.txt ./bin/convolution -i images/input.png -o results/images/perf_t${t}.png -k 3 -t $t > /dev/null 2>&1 || true
-    done
-    
-    echo -e "${GREEN}✓ Performance profiling completed${NC}"
-else
-    echo -e "${YELLOW}⚠ perf not available, skipping profiling${NC}"
-fi
-echo ""
-
-################################################################################
-# Test 6: Generate Plots
-################################################################################
-echo -e "${YELLOW}[6/6] Generating plots...${NC}"
-
-if command -v python3 &> /dev/null && python3 -c "import matplotlib" 2>/dev/null; then
-    python3 scripts/generate_plots.py
-    echo -e "${GREEN}✓ Plots generated${NC}"
-else
-    echo -e "${YELLOW}⚠ matplotlib not installed, skipping plot generation${NC}"
-    echo "  To install: pip3 install matplotlib pandas"
-fi
-echo ""
-
-################################################################################
 # Generate Summary Report
 ################################################################################
 END_TIME=$(date +%s)
@@ -198,9 +163,7 @@ cat >> "$REPORT" << EOF
 
 📁 Files Generated:
   • CSV Data: results/data/*.csv
-  • Output Images: results/images/*.png
-  • Plots: results/plots/*.png
-  • Perf Data: results/perf_data/*.txt
+  • Images: results/images/*.png
   • Report: results/BENCHMARK_REPORT.txt
 
 ✅ All benchmarks completed successfully!
@@ -213,14 +176,14 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║                    ✅ ALL DONE!                            ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "📊 Results saved to:"
-echo "  • CSV Data: results/data/*.csv"
-echo "  • Plots: results/plots/*.png"
-echo "  • Perf Data: results/perf_data/*.txt"
-echo "  • Images: results/images/*.png"
+echo -e "${GREEN}Total time: ${MINUTES}m ${SECONDS}s${NC}"
 echo ""
-echo "📝 Report:"
-echo "  • results/BENCHMARK_REPORT.txt"
+echo "📊 Results saved to:"
+echo "  • results/data/thread_scaling_k3.csv"
+echo "  • results/data/thread_scaling_k31.csv"
+echo "  • results/data/scheduler_comparison.csv"
+echo "  • results/data/kernel_comparison.csv"
+echo ""
 echo "📝 Report:"
 echo "  • results/BENCHMARK_REPORT.txt"
 echo ""
